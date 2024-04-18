@@ -24,6 +24,13 @@
 
 #include "SimulatorConfiguration.h"
 
+#include <CGAL/AABB_face_graph_triangle_primitive.h>
+#include <CGAL/AABB_traits.h>
+#include <CGAL/AABB_tree.h>
+#include <CGAL/Simple_cartesian.h>
+#include <CGAL/Surface_mesh.h>
+#include <fstream>
+
 namespace esp {
 namespace nav {
 class PathFinder;
@@ -40,6 +47,13 @@ class ReplayManager;
 }  // namespace replay
 }  // namespace gfx
 }  // namespace esp
+
+typedef CGAL::Simple_cartesian<double> K;
+typedef K::Point_3 Point;
+typedef CGAL::Surface_mesh<Point> Mesh;
+typedef CGAL::AABB_face_graph_triangle_primitive<Mesh> Primitive;
+typedef CGAL::AABB_traits<K, Primitive> Traits;
+typedef CGAL::AABB_tree<Traits> Tree;
 
 namespace esp {
 namespace sim {
@@ -842,6 +856,14 @@ class Simulator {
    * physics step. See also getRuntimePerfStatNames.
    */
   std::vector<float> getRuntimePerfStatValues();
+  assets::MeshData::ptr joinedSceneMeshData_ = nullptr;
+
+  struct ColRecord {
+    vec3f hitPos;
+    bool isOutBound;
+  };
+
+ ColRecord getClosestCollisionPoint(const vec3f& pt, float maxSearchRadius);
 
  protected:
   Simulator() = default;
@@ -1008,6 +1030,20 @@ class Simulator {
   std::vector<float> runtimePerfStatValues_;
 
   ESP_SMART_POINTERS(Simulator)
+
+ private:
+  /**
+   * @brief Load and add a render asset instance to the current scene graph(s).
+   * @param assetInfo the asset to load
+   * @param creation how to create the instance
+   */
+  void createMeshKDTree();
+  std::unique_ptr<CGAL::Surface_mesh<Point>> mesh_ptr_;
+  // CGAL::Surface_mesh<Point> mesh_;
+  std::unique_ptr<Tree> tree_ptr_;
+  bool is_tree_built_ = false;
+  vec3f min_bb, max_bb;
+  vecxf bb;
 };
 
 }  // namespace sim

@@ -359,7 +359,27 @@ void initSimBindings(py::module& m) {
           R"(Runtime perf stats are various scalars helpful for troubleshooting runtime perf. These values generally change after every sim step. See also get_runtime_perf_stat_names.)")
       .def("get_debug_line_render", &Simulator::getDebugLineRender,
            pybind11::return_value_policy::reference,
-           R"(Get visualization helper for rendering lines.)");
+           R"(Get visualization helper for rendering lines.)")
+      .def("get_closest_collision_point", &Simulator::getClosestCollisionPoint,
+           "pt"_a, "max_search_radius"_a,
+           R"(Get the closest collision point to the entire environment.)")
+      .def_readonly("mesh_data", &Simulator::joinedSceneMeshData_);
+
+  py::class_<assets::MeshData, assets::MeshData::ptr>(m, "mesh_data")
+      .def(py::init<>())
+      .def_readonly("vertices", &assets::MeshData::vbo)
+      .def_readonly("faces", &assets::MeshData::ibo)
+      .def_readonly("normals", &assets::MeshData::nbo)
+      .def_readonly("texture_coordinates", &assets::MeshData::tbo)
+      .def_readonly("colors", &assets::MeshData::cbo);
+
+  py::class_<Simulator::ColRecord>(m, "ColRecord",
+                        R"(Struct for recording closest obstacle information.)")
+      .def(py::init())
+      .def_readwrite("hit_pos", &Simulator::ColRecord::hitPos,
+                     R"(World position of the closest obstacle.)")
+      .def_readwrite("is_out_bound", &Simulator::ColRecord::isOutBound,
+                     R"(Normal of the navmesh at the obstacle in xz plane.)");
 
   // ==== ReplayRendererConfiguration ====
   py::class_<ReplayRendererConfiguration, ReplayRendererConfiguration::ptr>(

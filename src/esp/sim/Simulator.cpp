@@ -226,7 +226,9 @@ void Simulator::reconfigure(const SimulatorConfiguration& cfg) {
       recomputeNavMesh(*pathfinder_, *config_.navMeshSettings);
     }
   }
-
+  mesh_ptr_ = std::make_unique<CGAL::Surface_mesh<Point>>();
+  joinedSceneMeshData_ = getJoinedMesh(true);
+  createMeshKDTree();
 }  // Simulator::reconfigure
 
 bool Simulator::createSceneInstance(const std::string& activeSceneName) {
@@ -1278,6 +1280,65 @@ std::vector<float> Simulator::getRuntimePerfStatValues() {
   runtimePerfStatValues_.push_back(drawableNumFaces);
 
   return runtimePerfStatValues_;
+}
+
+Simulator::ColRecord Simulator::getClosestCollisionPoint(
+    const vec3f& pt,
+    float maxSearchRadius) {
+  Point closePoint;
+  vec3f closePoint_v3f;
+  Eigen::Index minIndex;
+  vecxf dist_to_bound(6); 
+  float dist_to_mesh,dist_to_bound_min;
+  bool is_out_bound;
+
+  // create Point using pt
+  closePoint = tree_ptr_->closest_point(Point(pt[0], pt[1], pt[2]));
+  dist_to_mesh = (closePoint - Point(pt[0], pt[1], pt[2])).squared_length();
+  // compute the pt's distance to the bound range min_bb, max_bb
+  dist_to_bound << pt - min_bb, max_bb - pt;
+  dist_to_bound_min = dist_to_bound.minCoeff(&minIndex);
+  is_out_bound = dist_to_bound_min < 0;
+  // if the distance is less than dist, replace the closePoint with pt
+  if (dist_to_bound_min < dist_to_mesh) {
+    // replace the value of minIndex of pt with min_bb or max_bb
+    closePoint_v3f = vec3f(pt[0], pt[1], pt[2]);
+    closePoint_v3f[minIndex % 3] = bb[minIndex];
+  }
+  else{
+    closePoint_v3f = vec3f(closePoint[0], closePoint[1], closePoint[2]);
+  }
+  
+  return {closePoint_v3f, is_out_bound};
+}
+
+void Simulator::createMeshKDTree() {
+  if (is_tree_built_) {
+    return;
+  }
+  mesh_ptr_ = std::make_unique<CGAL::Surface_mesh<Point>>();
+
+  std::vector<Mesh::Vertex_index> vertex_indices;
+  for (const auto& v : joinedSceneMeshData_->vbo) {
+    vertex_indices.push_back(mesh_ptr_->add_vertex(Point(v[0], v[1], v[2])));
+  }
+
+  for (size_t i = 0; i < joinedSceneMeshData_->ibo.size(); i += 3) {
+    mesh_ptr_->add_face(vertex_indices[joinedSceneMeshData_->ibo[i]],
+                  vertex_indices[joinedSceneMeshData_->ibo[i + 1]],
+                  vertex_indices[joinedSceneMeshData_->ibo[i + 2]]);
+  }
+
+  tree_ptr_ = std::make_unique<Tree>(faces(*mesh_ptr_).first, faces(*mesh_ptr_).second, *mesh_ptr_);
+  tree_ptr_->accelerate_distance_queries();
+  is_tree_built_ = true;
+  Magnum::Range3D range = getActiveSceneGraph().getRootNode().getCumulativeBB();
+  
+  min_bb = vec3f(range.min()[0], range.min()[1], range.min()[2]);
+  max_bb = vec3f(range.max()[0], range.max()[1], range.max()[2]);
+  bb = vecxf(6);
+  bb << min_bb, max_bb;
+
 }
 
 }  // namespace sim
