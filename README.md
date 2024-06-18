@@ -8,7 +8,7 @@
 [![Python 3.9](https://img.shields.io/badge/python-3.9.svg)](https://www.python.org/downloads/release/)
 [![Supports Bullet](https://img.shields.io/static/v1?label=supports&message=Bullet%20Physics&color=informational&link=https://opensource.google/projects/bullet3)](https://opensource.google/projects/bullet3)
 [![Twitter Follow](https://img.shields.io/twitter/follow/ai_habitat?style=social)](https://twitter.com/ai_habitat)
-
+# Noting: This is a modified version of Habitat-sim, which makes it avaliable to detect the closest collision point in spatial space instead of 2-D plane on the ground.
 # Habitat-Sim
 
 A high-performance physics-enabled 3D simulator with support for:
