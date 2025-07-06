@@ -466,7 +466,15 @@ void initSimBindings(py::module& m) {
       .def("get_closest_collision_point", &Simulator::getClosestCollisionPoint,
            "pt"_a, "max_search_radius"_a,
            R"(Get the closest collision point to the entire environment.)")
-      .def_readonly("mesh_data", &Simulator::joinedSceneMeshData_);
+      .def ("update_KDtree", &Simulator::createMeshKDTree,
+           R"(Update the KDTree used for fast collision queries.)")
+      .def ("update_dynamic_KDtree", &Simulator::createDynamicMeshKDTree,
+           R"(Update the KDTree used for fast collision queries for dynamic objects.)")
+      .def_readonly(
+            "object_mesh", &Simulator::joinedDynamicSceneMeshData_,
+            R"(Get the mesh data for the object mesh. This is a merged mesh of all objects in the scene.)"
+      )
+      .def_readonly("scene_mesh", &Simulator::joinedSceneMeshData_);
 
   py::class_<assets::MeshData, assets::MeshData::ptr>(m, "mesh_data")
       .def(py::init<>())

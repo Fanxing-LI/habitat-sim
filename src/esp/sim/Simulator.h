@@ -841,7 +841,11 @@ class Simulator {
    * physics step. See also getRuntimePerfStatNames.
    */
   std::vector<float> getRuntimePerfStatValues();
+
+  assets::MeshData::ptr getObjectMesh();
+
   assets::MeshData::ptr joinedSceneMeshData_ = nullptr;
+  assets::MeshData::ptr joinedDynamicSceneMeshData_ = nullptr;
 
   struct ColRecord {
     vec3f hitPos;
@@ -849,6 +853,10 @@ class Simulator {
   };
 
  ColRecord getClosestCollisionPoint(const vec3f& pt, float maxSearchRadius);
+ void createMeshKDTree();
+ void createDynamicMeshKDTree();
+
+  
 
  protected:
   Simulator() = default;
@@ -1002,10 +1010,13 @@ class Simulator {
    * @param assetInfo the asset to load
    * @param creation how to create the instance
    */
-  void createMeshKDTree();
   std::unique_ptr<CGAL::Surface_mesh<Point>> mesh_ptr_;
+  std::unique_ptr<CGAL::Surface_mesh<Point>> dynamic_mesh_ptr_;
+  
   // CGAL::Surface_mesh<Point> mesh_;
   std::unique_ptr<Tree> tree_ptr_;
+  std::unique_ptr<Tree> dynamic_tree_ptr_;
+
   bool is_tree_built_ = false;
   vec3f min_bb, max_bb;
 };
