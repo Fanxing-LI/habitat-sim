@@ -1285,16 +1285,26 @@ std::vector<float> Simulator::getRuntimePerfStatValues() {
 Simulator::ColRecord Simulator::getClosestCollisionPoint(
     const vec3f& pt,
     float maxSearchRadius) {
-  Point closePoint;
+  Point closePoint, obj_closePoint;
   vec3f closePoint_v3f;
   Eigen::Index minIndex;
   vecxf dist_to_bound(6); 
-  float dist_to_mesh,dist_to_bound_min;
+  float dist_to_mesh,dist_to_bound_min, dis_to_obj_mesh;
   bool is_out_bound;
 
   // create Point using pt
   closePoint = tree_ptr_->closest_point(Point(pt[0], pt[1], pt[2]));
   dist_to_mesh = (closePoint - Point(pt[0], pt[1], pt[2])).squared_length();
+  // point to  object mesh
+  // if existing dynamic mesh, use it
+  if (dynamic_tree_ptr_ != nullptr) {
+    obj_closePoint = dynamic_tree_ptr_->closest_point(Point(pt[0], pt[1], pt[2]));
+    dis_to_obj_mesh = (obj_closePoint - Point(pt[0], pt[1], pt[2])).squared_length();
+    if (dis_to_obj_mesh < dist_to_mesh) {
+      closePoint = obj_closePoint;
+      dist_to_mesh = dis_to_obj_mesh;
+    }
+  }
   // compute the pt's distance to the bound range min_bb, max_bb
   dist_to_bound << pt - min_bb, max_bb - pt;
   dist_to_bound_min = dist_to_bound.minCoeff(&minIndex);
@@ -1313,11 +1323,14 @@ Simulator::ColRecord Simulator::getClosestCollisionPoint(
 }
 
 void Simulator::createMeshKDTree() {
-  if (is_tree_built_) {
-    return;
-  }
-  mesh_ptr_ = std::make_unique<CGAL::Surface_mesh<Point>>();
+  // if (is_tree_built_) {
+  //   return;
+  // }
+  dynamic_mesh_ptr_.reset();
+  dynamic_tree_ptr_.reset();
 
+  mesh_ptr_ = std::make_unique<CGAL::Surface_mesh<Point>>();
+  joinedSceneMeshData_ = getJoinedMesh(false);
   std::vector<Mesh::Vertex_index> vertex_indices;
   for (const auto& v : joinedSceneMeshData_->vbo) {
     vertex_indices.push_back(mesh_ptr_->add_vertex(Point(v[0], v[1], v[2])));
@@ -1338,8 +1351,90 @@ void Simulator::createMeshKDTree() {
   max_bb = vec3f(range.max()[0], range.max()[1], range.max()[2]);
   bb = vecxf(6);
   bb << min_bb, max_bb;
+  printf("Simulator::createMeshKDTree: KDTree created with %d vertices and %d faces.\n",
+        mesh_ptr_->number_of_vertices(), mesh_ptr_->number_of_faces());
 
 }
+
+void Simulator::createDynamicMeshKDTree() {
+  // if (is_tree_built_) {
+  //   return;
+  // }
+  dynamic_mesh_ptr_.reset();
+  dynamic_tree_ptr_.reset();
+
+  dynamic_mesh_ptr_ = std::make_unique<CGAL::Surface_mesh<Point>>();
+  joinedDynamicSceneMeshData_ = getObjectMesh();
+  std::vector<Mesh::Vertex_index> vertex_indices;
+  for (const auto& v : joinedDynamicSceneMeshData_->vbo) {
+    vertex_indices.push_back(dynamic_mesh_ptr_->add_vertex(Point(v[0], v[1], v[2])));
+  }
+
+  for (size_t i = 0; i < joinedDynamicSceneMeshData_->ibo.size(); i += 3) {
+    dynamic_mesh_ptr_->add_face(vertex_indices[joinedDynamicSceneMeshData_->ibo[i]],
+                  vertex_indices[joinedDynamicSceneMeshData_->ibo[i + 1]],
+                  vertex_indices[joinedDynamicSceneMeshData_->ibo[i + 2]]);
+  }
+
+  dynamic_tree_ptr_ = std::make_unique<Tree>(faces(*dynamic_mesh_ptr_).first, faces(*dynamic_mesh_ptr_).second, *dynamic_mesh_ptr_);
+  dynamic_tree_ptr_->accelerate_distance_queries();
+  is_tree_built_ = true;
+}  
+
+
+assets::MeshData::ptr Simulator::getObjectMesh() {
+  assets::MeshData::ptr mergedMesh = assets::MeshData::create();
+
+  // 更新 transform 确保是最新的
+  if (renderer_) {
+    renderer_->waitSceneGraph();
+  }
+  physicsManager_->updateNodes();
+
+  auto rigidObjMgr = getRigidObjectManager();
+
+  for (auto objectID : physicsManager_->getExistingObjectIDs()) {
+    auto objWrapper = rigidObjMgr->getObjectCopyByID(objectID);
+    if (!objWrapper) continue;
+
+    // 只保留 STATIC 的 object
+    if (objWrapper->getMotionType() != physics::MotionType::STATIC) continue;
+
+    // 获取当前世界坐标下的变换矩阵
+    Eigen::Transform<float, 3, Eigen::Affine> T = Magnum::EigenIntegration::cast<
+        Eigen::Transform<float, 3, Eigen::Affine>>(
+        physicsManager_->getObjectVisualSceneNode(objectID).absoluteTransformationMatrix());
+
+    auto objAttrs = objWrapper->getInitializationAttributes();
+    T.scale(Magnum::EigenIntegration::cast<vec3f>(objAttrs->getScale()));
+
+    // 获取 mesh handle
+    std::string meshHandle = objAttrs->getCollisionAssetHandle();
+    if (meshHandle.empty())
+      meshHandle = objAttrs->getRenderAssetHandle();
+
+    auto mesh = resourceManager_->createJoinedCollisionMesh(meshHandle);
+    if (!mesh || mesh->vbo.empty()) continue;
+
+    // 合并进 mergedMesh
+    int prevNumIndices = mergedMesh->ibo.size();
+    int prevNumVerts = mergedMesh->vbo.size();
+    mergedMesh->ibo.resize(prevNumIndices + mesh->ibo.size());
+    for (size_t ix = 0; ix < mesh->ibo.size(); ++ix) {
+      mergedMesh->ibo[ix + prevNumIndices] = mesh->ibo[ix] + prevNumVerts;
+    }
+
+    mergedMesh->vbo.reserve(mesh->vbo.size() + prevNumVerts);
+    for (const auto& vert : mesh->vbo) {
+      mergedMesh->vbo.push_back(T * vert);
+    }
+  }
+
+  ESP_CHECK(mergedMesh->vbo.size() > 0,
+            "::getStaticObjectMesh: No STATIC object mesh was found or added.");
+  return mergedMesh;
+}
+
 
 }  // namespace sim
 }  // namespace esp
