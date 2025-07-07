@@ -1330,7 +1330,7 @@ void Simulator::createMeshKDTree() {
   dynamic_tree_ptr_.reset();
 
   mesh_ptr_ = std::make_unique<CGAL::Surface_mesh<Point>>();
-  joinedSceneMeshData_ = getJoinedMesh(false);
+  joinedSceneMeshData_ = getJoinedMesh(true);
   std::vector<Mesh::Vertex_index> vertex_indices;
   for (const auto& v : joinedSceneMeshData_->vbo) {
     vertex_indices.push_back(mesh_ptr_->add_vertex(Point(v[0], v[1], v[2])));
@@ -1398,7 +1398,7 @@ assets::MeshData::ptr Simulator::getObjectMesh() {
     if (!objWrapper) continue;
 
     // 只保留 STATIC 的 object
-    if (objWrapper->getMotionType() != physics::MotionType::STATIC) continue;
+    if (objWrapper->getMotionType() != physics::MotionType::DYNAMIC) continue;
 
     // 获取当前世界坐标下的变换矩阵
     Eigen::Transform<float, 3, Eigen::Affine> T = Magnum::EigenIntegration::cast<
@@ -1431,7 +1431,7 @@ assets::MeshData::ptr Simulator::getObjectMesh() {
   }
 
   ESP_CHECK(mergedMesh->vbo.size() > 0,
-            "::getStaticObjectMesh: No STATIC object mesh was found or added.");
+            "::getDynamicObjectMesh: No DYNAMIC object mesh was found or added.");
   return mergedMesh;
 }
 

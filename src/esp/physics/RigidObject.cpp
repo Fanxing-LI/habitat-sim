@@ -65,6 +65,7 @@ void RigidObject::setMotionType(MotionType mt) {
     // can't set DYNAMIC without a dynamics engine.
     objectMotionType_ = mt;
   }
+  objectMotionType_ = mt;
 }
 
 void RigidObject::resetStateFromSceneInstanceAttr() {
