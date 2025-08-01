@@ -1186,26 +1186,16 @@ std::vector<float> Simulator::getRuntimePerfStatValues() {
 
 Simulator::ColRecord Simulator::getClosestCollisionPoint(
     const vec3f& pt,
-    float maxSearchRadius) {
+    float maxSearchRadius,
+    bool is_object_collidable,
+    bool is_scene_collidable) {
   Point closePoint, obj_closePoint;
   vec3f closePoint_v3f;
-  float dist_to_mesh,dist_to_bound_min, dis_to_obj_mesh;
+  float dist_to_mesh = std::numeric_limits<float>::max();
+  float dist_to_bound_min, dis_to_obj_mesh;
   bool is_out_bound;
+  bool found_collision = false;
 
-  // create Point using pt
-  closePoint = tree_ptr_->closest_point(Point(pt[0], pt[1], pt[2]));
-  dist_to_mesh = (closePoint - Point(pt[0], pt[1], pt[2])).squared_length();
-  // point to  object mesh
-  // if existing dynamic mesh, use it
-  if (dynamic_tree_ptr_ != nullptr) {
-    obj_closePoint = dynamic_tree_ptr_->closest_point(Point(pt[0], pt[1], pt[2]));
-    dis_to_obj_mesh = (obj_closePoint - Point(pt[0], pt[1], pt[2])).squared_length();
-    if (dis_to_obj_mesh < dist_to_mesh) {
-      closePoint = obj_closePoint;
-      dist_to_mesh = dis_to_obj_mesh;
-    }
-  }
-  // compute the pt's distance to the bound range min_bb, max_bb
   const float dist_to_bound[6] = {
       pt[0] - min_bb[0], pt[1] - min_bb[1], pt[2] - min_bb[2],
       max_bb[0] - pt[0], max_bb[1] - pt[1], max_bb[2] - pt[2]};
@@ -1218,17 +1208,45 @@ Simulator::ColRecord Simulator::getClosestCollisionPoint(
     }
   }
   is_out_bound = dist_to_bound_min < 0;
-  // if the distance is less than dist, replace the closePoint with pt
-  if (dist_to_bound_min < dist_to_mesh) {
-    // replace the value of minIndex of pt with min_bb or max_bb
+
+  closePoint_v3f = vec3f(pt[0], pt[1], pt[2]);
+  closePoint_v3f[minIndex % 3] =
+      minIndex < 3 ? min_bb[minIndex] : max_bb[minIndex - 3];
+  float current_min_dist = std::abs(dist_to_bound_min);
+
+  if (is_scene_collidable && tree_ptr_ != nullptr) {
+    closePoint = tree_ptr_->closest_point(Point(pt[0], pt[1], pt[2]));
+    dist_to_mesh =
+        std::sqrt((closePoint - Point(pt[0], pt[1], pt[2])).squared_length());
+
+    if (dist_to_mesh <= maxSearchRadius && dist_to_mesh < current_min_dist) {
+      closePoint_v3f = vec3f(closePoint[0], closePoint[1], closePoint[2]);
+      current_min_dist = dist_to_mesh;
+      found_collision = true;
+    }
+  }
+
+  if (is_object_collidable && dynamic_tree_ptr_ != nullptr) {
+    obj_closePoint =
+        dynamic_tree_ptr_->closest_point(Point(pt[0], pt[1], pt[2]));
+    dis_to_obj_mesh =
+        std::sqrt((obj_closePoint - Point(pt[0], pt[1], pt[2]))
+                      .squared_length());
+
+    if (dis_to_obj_mesh <= maxSearchRadius &&
+        dis_to_obj_mesh < current_min_dist) {
+      closePoint_v3f = vec3f(obj_closePoint[0], obj_closePoint[1], obj_closePoint[2]);
+      current_min_dist = dis_to_obj_mesh;
+      found_collision = true;
+    }
+  }
+
+  if (std::abs(dist_to_bound_min) <= current_min_dist || !found_collision) {
     closePoint_v3f = vec3f(pt[0], pt[1], pt[2]);
     closePoint_v3f[minIndex % 3] =
         minIndex < 3 ? min_bb[minIndex] : max_bb[minIndex - 3];
   }
-  else{
-    closePoint_v3f = vec3f(closePoint[0], closePoint[1], closePoint[2]);
-  }
-  
+
   return {closePoint_v3f, is_out_bound};
 }
 

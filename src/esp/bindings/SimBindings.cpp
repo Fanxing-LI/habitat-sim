@@ -464,7 +464,7 @@ void initSimBindings(py::module& m) {
            pybind11::return_value_policy::reference,
            R"(Get visualization helper for rendering lines.)")
       .def("get_closest_collision_point", &Simulator::getClosestCollisionPoint,
-           "pt"_a, "max_search_radius"_a,
+           "pt"_a, "max_search_radius"_a, "is_object_collidable"_a = true, "is_scene_collidable"_a = true,
            R"(Get the closest collision point to the entire environment.)")
       .def ("update_KDtree", &Simulator::createMeshKDTree,
            R"(Update the KDTree used for fast collision queries.)")

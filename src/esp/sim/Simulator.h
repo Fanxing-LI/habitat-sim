@@ -852,7 +852,7 @@ class Simulator {
     bool isOutBound;
   };
 
- ColRecord getClosestCollisionPoint(const vec3f& pt, float maxSearchRadius);
+ ColRecord getClosestCollisionPoint(const vec3f& pt, float maxSearchRadius, bool is_object_collidable, bool is_scene_collidable);
  void createMeshKDTree();
  void createDynamicMeshKDTree();
 
