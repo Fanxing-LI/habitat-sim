@@ -1219,7 +1219,7 @@ Simulator::ColRecord Simulator::getClosestCollisionPoint(
     dist_to_mesh =
         std::sqrt((closePoint - Point(pt[0], pt[1], pt[2])).squared_length());
 
-    if (dist_to_mesh <= maxSearchRadius && dist_to_mesh < current_min_dist) {
+    if (dist_to_mesh <= maxSearchRadius) {
       closePoint_v3f = vec3f(closePoint[0], closePoint[1], closePoint[2]);
       current_min_dist = dist_to_mesh;
       found_collision = true;
@@ -1239,12 +1239,6 @@ Simulator::ColRecord Simulator::getClosestCollisionPoint(
       current_min_dist = dis_to_obj_mesh;
       found_collision = true;
     }
-  }
-
-  if (std::abs(dist_to_bound_min) <= current_min_dist || !found_collision) {
-    closePoint_v3f = vec3f(pt[0], pt[1], pt[2]);
-    closePoint_v3f[minIndex % 3] =
-        minIndex < 3 ? min_bb[minIndex] : max_bb[minIndex - 3];
   }
 
   return {closePoint_v3f, is_out_bound};
