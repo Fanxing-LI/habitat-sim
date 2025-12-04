@@ -1314,7 +1314,8 @@ if (is_scene_collidable && tree_ptr_ != nullptr) {
   
   // Check if within search radius
   if (dist_to_mesh <= maxSearchRadius) {
-    if (dist_to_mesh < current_min_dist) {
+    // if (dist_to_mesh < current_min_dist) {
+    if (true) {
       closePoint_v3f = vec3f(closePoint[0], closePoint[1], closePoint[2]);
       current_min_dist = dist_to_mesh;
       found_collision = true;
@@ -1337,11 +1338,11 @@ if (is_object_collidable && dynamic_tree_ptr_ != nullptr) {
   }
 }
 
-// If boundary distance is smallest or no other collision found within radius
-if (std::abs(dist_to_bound_min) <= current_min_dist || !found_collision) {
-  closePoint_v3f = vec3f(pt[0], pt[1], pt[2]);
-  closePoint_v3f[minIndex % 3] = bb[minIndex];
-}
+// // If boundary distance is smallest or no other collision found within radius
+// if (std::abs(dist_to_bound_min) <= current_min_dist || !found_collision) {
+//   closePoint_v3f = vec3f(pt[0], pt[1], pt[2]);
+//   closePoint_v3f[minIndex % 3] = bb[minIndex];
+// }
 
 return {closePoint_v3f, is_out_bound};
 }
