@@ -199,7 +199,8 @@ class AttributesManager : public ManagedFileBasedContainer<T, Access> {
   /**
    * @brief Returns actual attributes handle containing @p attrName as a
    * substring, or the empty string if none exists.
-   * Does a substring search, and returns first value found.
+   * Does a substring search, with preference for exact basename matches
+   * and shorter (more specific) handles.
    * @param attrName name to be used as searching substring in @p attrMgr
    * @return actual name of attributes in attrMgr, or empty string if does not
    * exist.
@@ -209,10 +210,41 @@ class AttributesManager : public ManagedFileBasedContainer<T, Access> {
       return attrName;
     }
     auto handleList = this->getObjectHandlesBySubstring(attrName);
-    if (!handleList.empty()) {
-      return handleList[0];
+    if (handleList.empty()) {
+      return "";
     }
-    return "";
+
+    // Score matches: prefer exact basename match, then shortest handle
+    std::string bestHandle = handleList[0];
+    int bestScore = -1;
+
+    for (const auto& handle : handleList) {
+      int score = 0;
+
+      // Get basename of handle
+      std::string basename = Cr::Utility::Path::split(handle).second();
+
+      // Check for exact basename match (with or without .object_config.json extension)
+      std::string basenameNoExt = basename;
+      if (Cr::Utility::String::endsWith(basenameNoExt, ".object_config.json")) {
+        basenameNoExt = basenameNoExt.substr(
+            0, basenameNoExt.size() - strlen(".object_config.json"));
+      }
+
+      if (basenameNoExt == attrName) {
+        score = 100;  // Highest priority: exact basename match
+      } else {
+        // Shorter handle = more specific match
+        score = -static_cast<int>(handle.length());
+      }
+
+      if (score > bestScore) {
+        bestScore = score;
+        bestHandle = handle;
+      }
+    }
+
+    return bestHandle;
   }  // getFullAttrNameFromStr
 
  protected:
