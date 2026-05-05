@@ -17,6 +17,7 @@ if(NOT USE_SYSTEM_MAGNUM)
   add_subdirectory("${DEPS_DIR}/corrade")
 endif()
 find_package(Corrade REQUIRED Utility)
+find_package(CGAL REQUIRED)
 
 # OpenMP
 find_package(OpenMP)

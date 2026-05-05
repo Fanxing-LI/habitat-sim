@@ -848,11 +848,11 @@ class Simulator {
   assets::MeshData::ptr joinedDynamicSceneMeshData_ = nullptr;
 
   struct ColRecord {
-    vec3f hitPos;
+    Mn::Vector3 hitPos;
     bool isOutBound;
   };
 
- ColRecord getClosestCollisionPoint(const vec3f& pt, float maxSearchRadius, bool is_object_collidable, bool is_scene_collidable);
+ ColRecord getClosestCollisionPoint(const Mn::Vector3& pt, float maxSearchRadius, bool is_object_collidable, bool is_scene_collidable);
  void createMeshKDTree();
  void createDynamicMeshKDTree();
 
@@ -1018,7 +1018,7 @@ class Simulator {
   std::unique_ptr<Tree> dynamic_tree_ptr_;
 
   bool is_tree_built_ = false;
-  vec3f min_bb, max_bb;
+  Mn::Vector3 min_bb, max_bb;
 };
 
 }  // namespace sim

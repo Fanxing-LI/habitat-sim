@@ -1185,16 +1185,15 @@ std::vector<float> Simulator::getRuntimePerfStatValues() {
 }
 
 Simulator::ColRecord Simulator::getClosestCollisionPoint(
-    const vec3f& pt,
+    const Mn::Vector3& pt,
     float maxSearchRadius,
     bool is_object_collidable,
     bool is_scene_collidable) {
   Point closePoint, obj_closePoint;
-  vec3f closePoint_v3f;
+  Mn::Vector3 closePoint_v3f;
   float dist_to_mesh = std::numeric_limits<float>::max();
   float dist_to_bound_min, dis_to_obj_mesh;
   bool is_out_bound;
-  bool found_collision = false;
 
   const float dist_to_bound[6] = {
       pt[0] - min_bb[0], pt[1] - min_bb[1], pt[2] - min_bb[2],
@@ -1209,7 +1208,7 @@ Simulator::ColRecord Simulator::getClosestCollisionPoint(
   }
   is_out_bound = dist_to_bound_min < 0;
 
-  closePoint_v3f = vec3f(pt[0], pt[1], pt[2]);
+  closePoint_v3f = Mn::Vector3(pt[0], pt[1], pt[2]);
   closePoint_v3f[minIndex % 3] =
       minIndex < 3 ? min_bb[minIndex] : max_bb[minIndex - 3];
   float current_min_dist = std::abs(dist_to_bound_min);
@@ -1220,9 +1219,9 @@ Simulator::ColRecord Simulator::getClosestCollisionPoint(
         std::sqrt((closePoint - Point(pt[0], pt[1], pt[2])).squared_length());
 
     if (dist_to_mesh <= maxSearchRadius) {
-      closePoint_v3f = vec3f(closePoint[0], closePoint[1], closePoint[2]);
+      closePoint_v3f =
+          Mn::Vector3(closePoint[0], closePoint[1], closePoint[2]);
       current_min_dist = dist_to_mesh;
-      found_collision = true;
     }
   }
 
@@ -1235,9 +1234,9 @@ Simulator::ColRecord Simulator::getClosestCollisionPoint(
 
     if (dis_to_obj_mesh <= maxSearchRadius &&
         dis_to_obj_mesh < current_min_dist) {
-      closePoint_v3f = vec3f(obj_closePoint[0], obj_closePoint[1], obj_closePoint[2]);
+      closePoint_v3f =
+          Mn::Vector3(obj_closePoint[0], obj_closePoint[1], obj_closePoint[2]);
       current_min_dist = dis_to_obj_mesh;
-      found_collision = true;
     }
   }
 
@@ -1269,8 +1268,8 @@ void Simulator::createMeshKDTree() {
   is_tree_built_ = true;
   Magnum::Range3D range = getActiveSceneGraph().getRootNode().getCumulativeBB();
   
-  min_bb = vec3f(range.min()[0], range.min()[1], range.min()[2]);
-  max_bb = vec3f(range.max()[0], range.max()[1], range.max()[2]);
+  min_bb = range.min();
+  max_bb = range.max();
   printf("Simulator::createMeshKDTree: KDTree created with %d vertices and %d faces.\n",
         mesh_ptr_->number_of_vertices(), mesh_ptr_->number_of_faces());
 

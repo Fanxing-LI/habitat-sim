@@ -575,6 +575,7 @@ target_link_libraries(
          MagnumPlugins::PrimitiveImporter
          Corrade::Utility
          Magnum::AnyImageConverter
+         CGAL::CGAL
   PRIVATE tinyxml2 Detour Recast
 )
 
