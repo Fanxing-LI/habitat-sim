@@ -1325,9 +1325,9 @@ assets::MeshData::ptr Simulator::getObjectMesh() {
     objectTransform = objectTransform * Mn::Matrix4::scaling(objAttrs->getScale());
 
     // 获取 mesh handle
-    std::string meshHandle = objAttrs->getCollisionAssetHandle();
+    std::string meshHandle = objAttrs->getCollisionAssetFullPath();
     if (meshHandle.empty())
-      meshHandle = objAttrs->getRenderAssetHandle();
+      meshHandle = objAttrs->getRenderAssetFullPath();
 
     auto mesh = resourceManager_->createJoinedCollisionMesh(meshHandle);
     if (!mesh || mesh->vbo.empty()) continue;
