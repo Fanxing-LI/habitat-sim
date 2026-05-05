@@ -74,10 +74,32 @@ We highly recommend installing a [miniconda](https://docs.conda.io/en/latest/min
    HABITAT_BUILD_GUI_VIEWERS=OFF pip install . --no-build-isolation
    ```
 
-    For systems with CUDA (to build CUDA features)
+   For systems with CUDA (to build CUDA features)
 
    ```bash
    HABITAT_WITH_CUDA=ON pip install . --no-build-isolation
+   ```
+
+   For UAV/VisFly development builds that require both Bullet physics and CUDA
+   in a Python 3.12 conda environment:
+
+   ```bash
+   conda create -n VisFly-3.12 python=3.12 cmake=3.27
+   conda activate VisFly-3.12
+   pip install -r requirements.txt
+
+   export CUDA_HOME=/usr/local/cuda
+   export PATH=$CUDA_HOME/bin:$PATH
+   export LD_LIBRARY_PATH=$CUDA_HOME/lib64:$CONDA_PREFIX/lib:${LD_LIBRARY_PATH:-}
+   export CMAKE_BUILD_PARALLEL_LEVEL=$(nproc)
+   export MAKEFLAGS=-j$(nproc)
+   export HABITAT_WITH_BULLET=ON
+   export HABITAT_WITH_CUDA=ON
+   export HABITAT_BUILD_GUI_VIEWERS=OFF
+   export HABITAT_BUILD_TEST=OFF
+
+   pip install -e . --no-build-isolation \
+     --config-settings=build-dir=build/visfly312-cuda-bullet
    ```
 
    With audio sensor via [rlr-audio-propagation](https://github.com/facebookresearch/rlr-audio-propagation/):
