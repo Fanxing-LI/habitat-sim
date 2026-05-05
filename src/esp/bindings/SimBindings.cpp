@@ -36,23 +36,6 @@ bool is_contiguous(const py::array_t<float>& array) {
   return py::detail::check_flags(array.ptr(), py::array::c_style);
 }
 
-Mn::Vector3 pyObjectToVector3(const py::object& obj) {
-  if (py::isinstance<Mn::Vector3>(obj)) {
-    return obj.cast<Mn::Vector3>();
-  }
-
-  auto array = py::array_t<float, py::array::forcecast>::ensure(obj);
-  ESP_CHECK(array,
-            "get_closest_collision_point pt must be a Magnum Vector3 or a "
-            "three-element array-like object.");
-  ESP_CHECK(array.size() == 3,
-            "get_closest_collision_point pt must contain exactly 3 values.");
-
-  py::buffer_info buffer = array.request();
-  auto* data = static_cast<float*>(buffer.ptr);
-  return Mn::Vector3{data[0], data[1], data[2]};
-}
-
 }  // namespace
 
 namespace esp {
@@ -480,13 +463,7 @@ void initSimBindings(py::module& m) {
       .def("get_debug_line_render", &Simulator::getDebugLineRender,
            pybind11::return_value_policy::reference,
            R"(Get visualization helper for rendering lines.)")
-      .def("get_closest_collision_point",
-           [](Simulator& self, const py::object& pt, float maxSearchRadius,
-              bool isObjectCollidable, bool isSceneCollidable) {
-             return self.getClosestCollisionPoint(
-                 pyObjectToVector3(pt), maxSearchRadius, isObjectCollidable,
-                 isSceneCollidable);
-           },
+      .def("get_closest_collision_point", &Simulator::getClosestCollisionPoint,
            "pt"_a, "max_search_radius"_a, "is_object_collidable"_a = true, "is_scene_collidable"_a = true,
            R"(Get the closest collision point to the entire environment.)")
       .def ("update_KDtree", &Simulator::createMeshKDTree,
