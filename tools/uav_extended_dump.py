@@ -155,7 +155,7 @@ def run_case(args):
             "object_only": [True, False],
             "neither": [False, False],
         }
-        shapes = ["flat", "column"]
+        shapes = args.point_shape
 
         collision = {}
         for point_name, point in points.items():
@@ -231,10 +231,19 @@ def main():
     parser.add_argument("--scene-dataset", default="")
     parser.add_argument("--object", action="append", required=True)
     parser.add_argument("--max-search-radius", type=float, default=10.0)
+    parser.add_argument(
+        "--point-shape",
+        action="append",
+        choices=["flat", "column"],
+        default=None,
+        help="Collision point shape to test. Repeat to test multiple shapes.",
+    )
     parser.add_argument("--enable-physics", action="store_true")
     parser.add_argument("--create-renderer", action="store_true")
     parser.add_argument("--include-full-mesh", action="store_true")
     args = parser.parse_args()
+    if args.point_shape is None:
+        args.point_shape = ["flat"]
     print(json.dumps(run_case(args), sort_keys=True))
 
 
