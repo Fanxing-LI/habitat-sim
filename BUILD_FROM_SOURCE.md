@@ -13,7 +13,7 @@
   to start the compilation process. To quickly compile the latest main, run `pip install git+https://github.com/facebookresearch/habitat-sim`.
 
 - Since pip out of tree by default, this process will copy quite a lot of data to your TMPDIR. You can change this location by modifying the TMPDIR env variable.
-  It will also not cache previous builds effectively and therefore will be slow. For active development, building using `python setup.py install...` is recommended.
+  It will also not cache previous builds effectively and therefore will be slow. For active development, building from the source tree is still recommended, but do not mix `pip install .` and `python setup.py install` in the same environment without uninstalling the previous Habitat-Sim package first. Leaving both installs in `site-packages` can cause Python to import stale bindings even after a successful rebuild.
 
 - Most compilation options can be accessed by either modifying the relevant ENV\_VARS (WITH\_BULLET, WITH\_CUDA, HEADLESS) etc or by passing the args through pip's `--global-option` and `--build-option` arguments.
 
@@ -100,6 +100,39 @@ We highly recommend installing a [miniconda](https://docs.conda.io/en/latest/min
    Note3: for active development in Habitat, you might find `./build.sh` instead of `python setup.py install` more useful.
 
    Note4: Audio sensor is only available on Linux.
+
+   Note5: if you are reinstalling Habitat-Sim into an environment that already had a previous Habitat-Sim install, remove the old install before rebuilding. In particular, avoid mixing an older `pip install .` / wheel-style install with a newer `python setup.py install`, because `setup.py install` may add a new egg without removing the older `site-packages/habitat_sim` package directory. That stale package can shadow the newly built bindings. A safe reinstall sequence is:
+
+   ```bash
+   python -m pip uninstall -y habitat-sim habitat_sim || true
+   rm -rf $(python - <<'PY'
+   import site
+   from pathlib import Path
+   for root in site.getsitepackages():
+       for name in [
+           'habitat_sim',
+           'habitat_sim-*.egg',
+           'habitat_sim-*.dist-info',
+       ]:
+           for path in Path(root).glob(name):
+               print(path)
+   PY
+   )
+   python setup.py install --with-cuda --bullet
+   ```
+
+   After installation, verify that Python is importing the expected package and extension module:
+
+   ```bash
+   python - <<'PY'
+   import habitat_sim
+   import habitat_sim._ext.habitat_sim_bindings as bindings
+   print('habitat_sim:', habitat_sim.__file__)
+   print('bindings:', bindings.__file__)
+   PY
+   ```
+
+   If the imported paths do not point at the newly installed build, inspect your environment for a stale `site-packages/habitat_sim` directory or an older Habitat-Sim egg taking precedence on `sys.path`.
 
 1. [Only if using `build.sh`] For use with [Habitat Lab](https://github.com/facebookresearch/habitat-lab) and your own python code, add habitat-sim to your `PYTHONPATH`. For example modify your `.bashrc` (or `.bash_profile` in Mac OS X) file by adding the line:
    ```bash
